@@ -1,0 +1,49 @@
+---
+apiVersion: apps/v1beta2
+kind: Deployment
+metadata:
+  name: fio-benchmark
+  labels:
+    app: fio-benchmark
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fio-benchmark
+  template:
+    metadata:
+      labels:
+        app: fio-benchmark
+    spec:
+      containers:
+      - name: fio
+        image: clusterhq/fio-tools-aio:latest
+        volumeMounts:
+          - name: fio-data
+            mountPath: /data
+        command: ["/usr/bin/fio"]
+        args: ["--name=fio",
+               "-e REMOTEFILES='https://gist.githubusercontent.com/wallnerryan/fd0146ee3122278d7b5f/raw/006ff707bc1a4aae570b33f4f4cd7729f7d88f43/job.fio'",
+               "-e JOBFILES=job.fio",
+               "-e PLOTNAME=MyTest"]
+        env:
+          - name: ip-172-20-52-32.ec2.internal
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+      volumes:
+        - name: fio-data
+          persistentVolumeClaim:
+            claimName: fio-data-claim
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: fio-data-claim
+spec:
+  storageClassName: cstor-storage-class
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 5G
